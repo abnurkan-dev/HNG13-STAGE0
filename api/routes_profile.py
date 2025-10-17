@@ -6,9 +6,9 @@ from services.cat_fact_service import get_cat_fact
 from core.config import settings
 from core.utils import get_utc_timestamp
 from fastapi_limiter.depends import RateLimiter
-from main import rate_limiter_enabled
+#from main import rate_limiter_enabled
 
-
+rate_limiter_enabled = False
 
 router = APIRouter()
 
