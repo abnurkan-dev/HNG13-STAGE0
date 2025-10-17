@@ -15,7 +15,7 @@ app = FastAPI(title="Profile API with MVC Architecture", version="1.0.0")
 
 
 # ✅ optional flag to disable rate limiter globally
-rate_limiter_enabled = True
+rate_limiter_enabled = False
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
