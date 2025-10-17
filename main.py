@@ -13,6 +13,9 @@ from contextlib import asynccontextmanager
 # Initialize app
 app = FastAPI(title="Profile API with MVC Architecture", version="1.0.0")
 
+
+# ✅ optional flag to disable rate limiter globally
+rate_limiter_enabled = False
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,25 +32,38 @@ app.add_middleware(
 # Include routers
 app.include_router(profile_router)
 
-@app.get("/",dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+#@app.get("/",dependencies=[Depends(RateLimiter(times=5, seconds=60))])
+@app.get("/", dependencies=[Depends(RateLimiter(times=5, seconds=60))] if rate_limiter_enabled else [])
 async def root():
     return {"message": "Welcome to the Profile API"}
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global rate_limiter_enabled
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-    r = await redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
-    await FastAPILimiter.init(r)
-    logger.info("✅ Connected to Redis for rate limiting")
-    logger.info("🚀 FastAPI is running at: http://127.0.0.1:8000")
-    logger.info("📘 Docs available at: http://127.0.0.1:8000/docs")
-    logger.info("🔗 Profile endpoint: http://127.0.0.1:8000/me")
+    try:
+        r = await redis.from_url(
+            REDIS_URL,
+            encoding="utf-8",
+            decode_responses=True,
+            ssl=REDIS_URL.startswith("rediss://")  # Upstash uses SSL
+        )
+        await FastAPILimiter.init(r)
+        rate_limiter_enabled = True
+        print("✅ Connected to Upstash Redis successfully — rate limiting enabled")
 
-    yield  
-
-    # --- Shutdown ---
-    await r.close()
-    logger.info("🛑 Redis connection closed")
+        logger.info("✅ Connected to Redis for rate limiting")
+        logger.info("🚀 FastAPI is running at: http://127.0.0.1:8000")
+        logger.info("📘 Docs available at: http://127.0.0.1:8000/docs")
+        logger.info("🔗 Profile endpoint: http://127.0.0.1:8000/me")
+    
+    
+    except Exception as e:
+        rate_limiter_enabled = False
+        print(f"⚠️ Redis connection failed: {e}")
+        print("➡️ Proceeding without rate limiting.")
 
 
 if __name__ == "__main__":
