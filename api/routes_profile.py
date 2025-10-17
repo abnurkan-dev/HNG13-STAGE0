@@ -8,7 +8,7 @@ from core.utils import get_utc_timestamp
 from fastapi_limiter.depends import RateLimiter
 #from main import rate_limiter_enabled
 
-rate_limiter_enabled = False
+rate_limiter_enabled = True
 
 router = APIRouter()
 
