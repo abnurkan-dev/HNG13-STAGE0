@@ -1,24 +1,17 @@
+from fastapi import FastAPI
+from controller import country_controller
+from core.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import uvicorn
 
-from fastapi import FastAPI, Depends
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
-from api.routes_profile import router as profile_router
-import redis.asyncio as redis
-from contextlib import asynccontextmanager
 
+app = FastAPI(title="Country currency and Backend API", version="1.0.0")
 
-# Initialize app
-app = FastAPI(title="Profile API with MVC Architecture", version="1.0.0")
-
-
-# ✅ optional flag to disable rate limiter globally
-rate_limiter_enabled = False
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 # Add CORS
 app.add_middleware(
@@ -29,42 +22,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(profile_router)
-
-#@app.get("/",dependencies=[Depends(RateLimiter(times=5, seconds=60))])
-@app.get("/", dependencies=[Depends(RateLimiter(times=5, seconds=60))] if rate_limiter_enabled else [])
-async def root():
-    return {"message": "Welcome to the Profile API"}
+# Register routers
+app.include_router(country_controller.router)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global rate_limiter_enabled
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+# Attempt to connect to DB safely
+@app.on_event("startup")
+async def on_startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("✅ Database schema synchronized.")
 
-    try:
-        r = await redis.from_url(
-            REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True,
-            ssl=REDIS_URL.startswith("rediss://")  # Upstash uses SSL
-        )
-        await FastAPILimiter.init(r)
-        rate_limiter_enabled = True
-        print("✅ Connected to Upstash Redis successfully — rate limiting enabled")
 
-        logger.info("✅ Connected to Redis for rate limiting")
-        logger.info("🚀 FastAPI is running at: http://127.0.0.1:8000")
-        logger.info("📘 Docs available at: http://127.0.0.1:8000/docs")
-        logger.info("🔗 Profile endpoint: http://127.0.0.1:8000/me")
-    
-    
-    except Exception as e:
-        rate_limiter_enabled = False
-        print(f"⚠️ Redis connection failed: {e}")
-        print("➡️ Proceeding without rate limiting.")
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Country currency and Backend API"}
 
+
+# @app.get("/status")
+# def get_status():
+#     from sqlalchemy import func
+#     from core.database import SessionLocal
+#     db = SessionLocal()
+#     total = db.query(func.count()).select_from(Base.metadata.tables['countries']).scalar()
+#     latest = db.query(func.max(Base.metadata.tables['countries'].c.last_refreshed_at)).scalar()
+#     db.close()
+#     return {"total_countries": total or 0, "last_refreshed_at": str(latest) if latest else None}
+
+   
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    import os
+    port = int(os.getenv("PORT", 8000))  # PXXL sets this automatically
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

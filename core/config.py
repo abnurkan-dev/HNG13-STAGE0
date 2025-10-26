@@ -1,17 +1,24 @@
 import os
-# from pydantic import BaseSettings
-from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
 
+load_dotenv()
 
-class Settings(BaseSettings):
-    APP_NAME: str = "Profile API"
-    CAT_FACT_URL: str = "https://catfact.ninja/fact"
-    REQUEST_TIMEOUT: float = 5.0
-    EMAIL: str = "abdulnurakani@gmail.com"
-    FULL_NAME: str = "Abdulaziz Nura Kani"
-    STACK: str = "Python/FastAPI"
+# class Settings:
+#     DATABASE_URL = os.getenv("DATABASE_URL")
+#     EXTERNAL_COUNTRY_API = os.getenv("EXTERNAL_COUNTRY_API")
+#     EXTERNAL_EXCHANGE_API = os.getenv("EXTERNAL_EXCHANGE_API")
+#     PORT = int(os.getenv("PORT", 8000))
+# settings = Settings()
 
-    # class Config:
-    #     env_file = ".env"
+class Settings:
+    DATABASE_URL="postgresql+asyncpg://postgres:abba1234@db.blpsygeggyzfywaudaix.supabase.co:5432/postgres"
+    EXTERNAL_COUNTRY_API="https://restcountries.com/v2/all?fields=name,capital,region,population,flag,currencies"
+    EXTERNAL_EXCHANGE_API="https://open.er-api.com/v6/latest/USD"
+    PORT=8000
 
 settings = Settings()
+
+
+
+
+
